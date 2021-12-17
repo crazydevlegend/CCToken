@@ -720,8 +720,8 @@ contract CCToken is Context, IERC20, Ownable {
     address public liquidityWallet = 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db;
     uint256 private _previousLiquidityWalletFee = _liquidityWalletFee;
 
-    // address constant private UNISWAP_ROUTER = 0x10ED43C718714eb63d5aA57B78B54704E256024E;   // bsc-mainnet
-    address constant private UNISWAP_ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;   // bsc-testnet
+    // address constant private PANCAKE_ROUTER = 0x10ED43C718714eb63d5aA57B78B54704E256024E;   // bsc-mainnet
+    address constant private PANCAKE_ROUTER = 0xD99D1c33F9fC3444f8101754aBC46c52416550D1;   // bsc-testnet
 
     IUniswapV2Router02 public  uniswapV2Router;
     address public  uniswapV2Pair;
@@ -745,12 +745,11 @@ contract CCToken is Context, IERC20, Ownable {
         inSwapAndLiquify = false;
     }
     
-    constructor () public {
+    constructor () public payable {
         _rOwned[_msgSender()] = _rTotal;
         
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);    // BSC-mainnet
-        // IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-         // Create a uniswap pair for this new token
+        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(PANCAKE_ROUTER);
+        // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), _uniswapV2Router.WETH());
 
@@ -850,7 +849,7 @@ contract CCToken is Context, IERC20, Ownable {
     }
 
     function excludeFromReward(address account) public onlyOwner() {
-        require(account != 0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F, 'We can not exclude Pancake router.');
+        require(account != PANCAKE_ROUTER, 'We can not exclude Pancake router.');
         require(!_isExcluded[account], "Account is already excluded");
         if(_rOwned[account] > 0) {
             _tOwned[account] = tokenFromReflection(_rOwned[account]);
@@ -1091,7 +1090,7 @@ contract CCToken is Context, IERC20, Ownable {
         uint256 burnAmt = amount.mul(_burnFee).div(100);
         uint256 marketingAmt = amount.mul(_marketingFee).div(100);
         uint256 liquidityWalletAmt = amount.mul(_liquidityWalletFee).div(100);
-        if (recipient == UNISWAP_ROUTER) {  // sell
+        if (recipient == PANCAKE_ROUTER) {  // sell
             uint256 halfExtraFeeOnSell = _extraFeeOnSell.div(2);
             uint256 extraAmtOnSell = amount.mul(halfExtraFeeOnSell).div(100);
             marketingAmt = marketingAmt.add(extraAmtOnSell);
