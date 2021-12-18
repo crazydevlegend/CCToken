@@ -712,9 +712,9 @@ contract CCToken is Context, IERC20, Ownable {
     uint256 public _extraFeeOnSell = 2;
     uint256 private _previousExtraFeeOnSell = _extraFeeOnSell;
 
-    uint256 public _marketingFee = 5;
+    uint256 public _marketingWalletFee = 5;
     address public marketingWallet = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2;
-    uint256 private _previousMarketingFee = _marketingFee;
+    uint256 private _previousMarketingFee = _marketingWalletFee;
 
     uint256 public _liquidityWalletFee = 5;
     address public liquidityWallet = 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db;
@@ -939,21 +939,21 @@ contract CCToken is Context, IERC20, Ownable {
     }
     
     function calculateTaxFee(uint256 _amount) private view returns (uint256) {
-        return _amount.mul(_taxFee).div(
-            10**2
-        );
+        uint256 assignedPercentage = 100;
+        assignedPercentage = assignedPercentage.sub(_marketingWalletFee).sub(_liquidityWalletFee).sub(_burnFee);
+        return _amount.mul(_taxFee).div(assignedPercentage);
     }
 
     function calculateLiquidityFee(uint256 _amount) private view returns (uint256) {
-        return _amount.mul(_liquidityFee).div(
-            10**2
-        );
+        uint256 assignedPercentage = 100;
+        assignedPercentage = assignedPercentage.sub(_marketingWalletFee).sub(_liquidityWalletFee).sub(_burnFee);
+        return _amount.mul(_liquidityFee).div(assignedPercentage);
     }
     
     function removeAllFee() private {
         if(_taxFee == 0 
         && _liquidityFee == 0
-        && _marketingFee==0 
+        && _marketingWalletFee==0 
         && _burnFee==0 
         && _liquidityWalletFee == 0 
         && _extraFeeOnSell == 0) 
@@ -962,13 +962,13 @@ contract CCToken is Context, IERC20, Ownable {
         _previousTaxFee = _taxFee;
         _previousLiquidityFee = _liquidityFee;
         _previousBurnFee = _burnFee;
-        _previousMarketingFee = _marketingFee;
+        _previousMarketingFee = _marketingWalletFee;
         _previousLiquidityWalletFee = _liquidityWalletFee;
         _previousExtraFeeOnSell = _extraFeeOnSell;
         
         _taxFee = 0;
         _liquidityFee = 0;
-        _marketingFee = 0;
+        _marketingWalletFee = 0;
         _burnFee = 0;
         _liquidityWalletFee = 0;
         _extraFeeOnSell = 0;
@@ -978,7 +978,7 @@ contract CCToken is Context, IERC20, Ownable {
        _taxFee = _previousTaxFee;
        _liquidityFee = _previousLiquidityFee;
        _burnFee = _previousBurnFee;
-       _marketingFee = _previousMarketingFee;
+       _marketingWalletFee = _previousMarketingFee;
        _extraFeeOnSell = _previousExtraFeeOnSell;
        _liquidityWalletFee = _previousLiquidityWalletFee;
     }
@@ -1088,25 +1088,25 @@ contract CCToken is Context, IERC20, Ownable {
         
         //Calculate burn amount, charity amount, _liquidityWalletFee amount
         uint256 burnAmt = amount.mul(_burnFee).div(100);
-        uint256 marketingAmt = amount.mul(_marketingFee).div(100);
+        uint256 marketingWalletAmt = amount.mul(_marketingWalletFee).div(100);
         uint256 liquidityWalletAmt = amount.mul(_liquidityWalletFee).div(100);
         if (recipient == PANCAKE_ROUTER) {  // sell
             uint256 halfExtraFeeOnSell = _extraFeeOnSell.div(2);
             uint256 extraAmtOnSell = amount.mul(halfExtraFeeOnSell).div(100);
-            marketingAmt = marketingAmt.add(extraAmtOnSell);
+            marketingWalletAmt = marketingWalletAmt.add(extraAmtOnSell);
             liquidityWalletAmt = liquidityWalletAmt.add(extraAmtOnSell);
         }
-
+        
         if (_isExcluded[sender] && !_isExcluded[recipient]) {
-            _transferFromExcluded(sender, recipient, (amount.sub(burnAmt).sub(marketingAmt).sub(liquidityWalletAmt)));
+            _transferFromExcluded(sender, recipient, (amount.sub(burnAmt).sub(marketingWalletAmt).sub(liquidityWalletAmt)));
         } else if (!_isExcluded[sender] && _isExcluded[recipient]) {
-            _transferToExcluded(sender, recipient, (amount.sub(burnAmt).sub(marketingAmt).sub(liquidityWalletAmt)));
+            _transferToExcluded(sender, recipient, (amount.sub(burnAmt).sub(marketingWalletAmt).sub(liquidityWalletAmt)));
         } else if (!_isExcluded[sender] && !_isExcluded[recipient]) {
-            _transferStandard(sender, recipient, (amount.sub(burnAmt).sub(marketingAmt).sub(liquidityWalletAmt)));
+            _transferStandard(sender, recipient, (amount.sub(burnAmt).sub(marketingWalletAmt).sub(liquidityWalletAmt)));
         } else if (_isExcluded[sender] && _isExcluded[recipient]) {
-            _transferBothExcluded(sender, recipient, (amount.sub(burnAmt).sub(marketingAmt).sub(liquidityWalletAmt)));
+            _transferBothExcluded(sender, recipient, (amount.sub(burnAmt).sub(marketingWalletAmt).sub(liquidityWalletAmt)));
         } else {
-            _transferStandard(sender, recipient, (amount.sub(burnAmt).sub(marketingAmt).sub(liquidityWalletAmt)));
+            _transferStandard(sender, recipient, (amount.sub(burnAmt).sub(marketingWalletAmt).sub(liquidityWalletAmt)));
         }
         
         //Temporarily remove fees to transfer to burn address and charity wallet
@@ -1115,7 +1115,7 @@ contract CCToken is Context, IERC20, Ownable {
 
 
         _transferStandard(sender, address(0), burnAmt);
-        _transferStandard(sender, marketingWallet, marketingAmt);
+        _transferStandard(sender, marketingWallet, marketingWalletAmt);
         _transferStandard(sender, liquidityWallet, liquidityWalletAmt);
 
         //Restore tax and liquidity fees
@@ -1177,7 +1177,7 @@ contract CCToken is Context, IERC20, Ownable {
     }
     
     function setChartityFeePercent(uint256 charityFee) external onlyOwner() {
-        _marketingFee = charityFee;
+        _marketingWalletFee = charityFee;
     }
     
     function setBurnFeePercent(uint256 burnFee) external onlyOwner() {
