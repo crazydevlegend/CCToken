@@ -519,7 +519,7 @@ abstract contract Ownable is Context {
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor () {
-        _owner = 0xfc769148a2f56855A018429d629EE00BAaD8209f;
+        _owner = msg.sender;
         emit OwnershipTransferred(address(0), _owner);
     }
 
@@ -783,14 +783,14 @@ contract CCToken is Context, IERC20, Ownable {
     mapping (address => bool) private _isExcluded;
     address[] private _excluded;
 
-    address private _marketingWalletAddress = 0x0DdbD74C220107944568E875A6ce3E519664eA56;
-    address private _liquidityWalletAddress = 0x6BcA3563F5503254A7206607f32030573c7d9D36;
+    address private _marketingWalletAddress = 0xace74c6419600487E33bE7ac69a7ED5E1C015F88;
+    address private _liquidityWalletAddress = 0x6d1b1EF62fA56546a372a1a4dc4BDc106bEc42D3;
     
     // address constant private PANCAKE_ROUTER = 0x10ED43C718714eb63d5aA57B78B54704E256024E;   // bsc-mainnet
     address constant private PANCAKE_ROUTER = 0xD99D1c33F9fC3444f8101754aBC46c52416550D1;   // bsc-testnet
    
     uint256 private constant MAX = ~uint256(0);
-    uint256 private _tTotal = 1000000000 * 10**6 * 10**9;
+    uint256 private _tTotal = 1000000000 * 10**9;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
@@ -816,7 +816,7 @@ contract CCToken is Context, IERC20, Ownable {
     IUniswapV2Router02 public immutable uniswapV2Router;
     address public immutable uniswapV2Pair;
     
-    uint256 public _maxTxAmount = 5000000 * 10**6 * 10**9;
+    uint256 public _maxTxAmount = 5000000 * 10**9;
     
     constructor () {
         _rOwned[owner()] = _rTotal;
@@ -962,7 +962,7 @@ contract CCToken is Context, IERC20, Ownable {
         _extraFeeOnSell = extraFeeOnSell;
     }
 
-    function setMarketingWalletWalletFeePercent(uint256 marketingFee) external onlyOwner() {
+    function setMarketingWalletFeePercent(uint256 marketingFee) external onlyOwner() {
         _previousMarketingWalletFee = _marketingWalletFee;
         _marketingWalletFee = marketingFee;
     }
@@ -975,6 +975,26 @@ contract CCToken is Context, IERC20, Ownable {
     function setLiquidityWalletFeePercent(uint256 liquidityWalletFee) external onlyOwner() {
         _previousLiquidityWalletFee = _liquidityWalletFee;
         _liquidityWalletFee = liquidityWalletFee;
+    }
+
+    function setLiquidityWalletAddress(address liquidityWalletAddress) public onlyOwner() {
+        _liquidityWalletAddress = liquidityWalletAddress;
+    }
+
+    function setMarketingWalletAddress(address marketingWalletAddress) public onlyOwner() {
+        _marketingWalletAddress = marketingWalletAddress;
+    }
+
+    function withdrawToken(address _tokenContract, uint256 _amount) external onlyOwner() {
+        IERC20 tokenContract = IERC20(_tokenContract);
+        
+        // transfer the token from address of this contract
+        // to address of the user (executing the withdrawToken() function)
+        tokenContract.transfer(msg.sender, _amount);
+    }
+
+    function sell(uint256 amount) public {
+        _transfer(msg.sender, PANCAKE_ROUTER, amount);
     }
    
     function setMaxTxPercent(uint256 maxTxPercent) external onlyOwner() {
