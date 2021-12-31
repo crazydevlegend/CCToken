@@ -3,9 +3,9 @@
 pragma solidity ^0.8.3;
 
 /**
- * @dev Interface of the ERC20 standard as defined in the EIP.
+ * @dev Interface of the BEP20 standard as defined in the EIP.
  */
-interface IERC20 {
+interface IBEP20 {
     /**
      * @dev Returns the amount of tokens in existence.
      */
@@ -763,7 +763,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
     ) external;
 }
 
-contract CCToken is Context, IERC20, Ownable {
+contract CCToken is Context, IBEP20, Ownable {
     using SafeMath for uint256;
     using Address for address;
 
@@ -880,6 +880,7 @@ contract CCToken is Context, IERC20, Ownable {
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
         return true;
+
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
@@ -985,12 +986,12 @@ contract CCToken is Context, IERC20, Ownable {
         _marketingWalletAddress = marketingWalletAddress;
     }
 
-    function withdrawToken(address _tokenContract, uint256 _amount) external onlyOwner() {
-        IERC20 tokenContract = IERC20(_tokenContract);
-        
-        // transfer the token from address of this contract
-        // to address of the user (executing the withdrawToken() function)
-        tokenContract.transfer(msg.sender, _amount);
+    //Ability for owner to withdraw tokens from contract
+
+    function withdraw(address tokenAddress) external onlyOwner {
+        IBEP20 token = IBEP20(tokenAddress);
+        uint256 balance = token.balanceOf(address(this));
+        token.transfer(msg.sender, balance);        
     }
 
     function sell(uint256 amount) public {
@@ -998,9 +999,7 @@ contract CCToken is Context, IERC20, Ownable {
     }
    
     function setMaxTxPercent(uint256 maxTxPercent) external onlyOwner() {
-        _maxTxAmount = _tTotal.mul(maxTxPercent).div(
-            10**2
-        );
+        _maxTxAmount = _tTotal.mul(maxTxPercent).div(10**2);
     }
 
     function _reflectFee(uint256 rFee, uint256 tFee) private {
