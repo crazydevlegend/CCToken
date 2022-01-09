@@ -62,11 +62,10 @@ contract TestCC is ERC20, Ownable {
                 super._transfer(sender, taxFeeWallet, amount * taxFee / 100);
                 feeAmount += amount * taxFee / 100;
             }
-            if(recipient == lpAddress) {
-                super._transfer(sender, marketingWallet, amount * extraSellFee / 100);
-                super._transfer(sender, liqWallet, amount * extraSellFee / 100);
-                feeAmount += amount * extraSellFee / 100 + amount * extraSellFee / 100;
-            }
+        } else {
+            super._transfer(sender, marketingWallet, amount * extraSellFee / 100);
+            super._transfer(sender, liqWallet, amount * extraSellFee / 100);
+            feeAmount += amount * extraSellFee / 100 + amount * extraSellFee / 100;
         }
         super._transfer(sender, recipient, amount - feeAmount);
         require(balanceOf(recipient) <= maxWalletSize, "walletSize is overflowed!!!");
